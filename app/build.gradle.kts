@@ -5,16 +5,29 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val appVersionCode: Int = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
+
 android {
     namespace = "app.ranking"
     compileSdk = 35
+
+    // Assinatura fixa: sem ela cada build teria uma chave nova e o Android
+    // não deixaria instalar uma versão por cima da outra.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
 
     defaultConfig {
         applicationId = "app.ranking"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = "1.0.$appVersionCode"
     }
 
     buildTypes {

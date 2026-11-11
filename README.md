@@ -32,4 +32,9 @@ Kotlin + Jetpack Compose + Material 3 + Room (tudo local, offline, sem backend).
 
 ## APK automático
 
-A cada push na branch `main`, o GitHub Actions compila o app. Para baixar o APK: aba **Actions** > último build > **Artifacts** > `app-ranking-debug-apk`.
+A cada push na branch `main`, o GitHub Actions compila o app e publica uma *release* com o APK.
+
+Link direto para a versão mais recente:
+https://github.com/RubemCezar/app-ranking/releases/latest/download/app-ranking.apk
+
+O APK usa uma chave de assinatura fixa (`app/debug.keystore`, chave de teste pública), então cada versão nova instala por cima da anterior sem perder os dados.
