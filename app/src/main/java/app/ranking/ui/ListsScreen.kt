@@ -54,6 +54,7 @@ fun ListsScreen(vm: RankingViewModel, onOpen: (Long) -> Unit) {
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Meus rankings") }) },
+        bottomBar = { UpdateBanner(vm) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { creating = true },

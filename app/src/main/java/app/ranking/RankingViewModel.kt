@@ -11,6 +11,11 @@ import app.ranking.data.Criterion
 import app.ranking.data.Item
 import app.ranking.data.RankList
 import app.ranking.data.Score
+import app.ranking.update.UpdateState
+import app.ranking.update.Updater
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -18,8 +23,53 @@ import java.io.File
 
 class RankingViewModel(app: Application) : AndroidViewModel(app) {
 
+    private val appContext: Application = app
     private val db = AppDatabase.get(app)
     private val dao = db.dao()
+
+    // ---- Atualização do app (release mais nova no GitHub) ----
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.None)
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+    private var pendingRelease: Updater.Release? = null
+    private var apkFile: File? = null
+
+    init {
+        checkForUpdate()
+    }
+
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            val release = withContext(Dispatchers.IO) {
+                runCatching { Updater.fetchLatest() }.getOrNull()
+            } ?: return@launch
+            val installed = Updater.installedVersionCode(appContext)
+            if (release.versionCode > installed) {
+                pendingRelease = release
+                _updateState.value = UpdateState.Available(release.versionCode)
+            }
+        }
+    }
+
+    fun downloadUpdate() {
+        val release = pendingRelease ?: return
+        _updateState.value = UpdateState.Downloading(release.versionCode)
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { Updater.download(appContext, release.apkUrl) }
+            }
+            result.onSuccess {
+                apkFile = it
+                _updateState.value = UpdateState.Ready(release.versionCode)
+            }.onFailure {
+                _updateState.value = UpdateState.Failed(release.versionCode)
+            }
+        }
+    }
+
+    fun installUpdate() {
+        val file = apkFile ?: return
+        runCatching { Updater.install(appContext, file) }
+    }
 
     // ---- Leitura (Flows) ----
     val lists = dao.observeLists()
